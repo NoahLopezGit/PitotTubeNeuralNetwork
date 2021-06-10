@@ -8,7 +8,7 @@ using Flux: @epochs, @show
 using BSON: @save
 using Random
 
-fname = "training.txt"
+fname = "Dataset/training.txt"
 f1 = open(fname)
 tempdata = readlines(f1)
 close(f1)
@@ -61,7 +61,7 @@ for j in 1:1000
     push!(mseplot,a)
 end
 
-fname = "testing.txt"
+fname = "Dataset/testing.txt"
 f2 = open(fname)
 tempdata = readlines(f2)
 close(f2)
