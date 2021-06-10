@@ -9,7 +9,6 @@ using BSON: @save
 using Random
 using Statistics
 
-fname = "Dataset/training.txt"
 
 #function for parsing data
 function get_data(filename)
@@ -54,6 +53,7 @@ function norm_data(data, scalingmatrix=nothing)
 end
 
 #getting training data
+fname = "Dataset/training.txt"
 train_data = get_data(fname)
 train_norm, scalingmatrix = norm_data(train_data)
 #converting data to format which works with network
