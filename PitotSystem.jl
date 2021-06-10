@@ -5,8 +5,8 @@ Pkg.activate(".")
 using F16Model, LinearAlgebra#, PyPlot # Load the packages.
 using BSON: @load
 using Flux
-@load "PressurePrediction.bson" model
-@load "FaultPrediction.bson" FaultModel
+@load "Models/PressurePrediction.bson" model
+@load "Models/FaultPrediction.bson" FaultModel
 
 
 #=
