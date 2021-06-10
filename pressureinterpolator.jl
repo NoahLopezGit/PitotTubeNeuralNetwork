@@ -53,6 +53,7 @@ function norm_data(data, scalingmatrix=nothing)
     return normvec, scalingmatrix
 end
 
+#getting training data
 train_data = get_data(fname)
 train_norm, scalingmatrix = norm_data(train_data)
 #converting data to format which works with network
@@ -60,55 +61,70 @@ data = []
 for i in 1:length(train_norm[:,1])
     push!(data,(train_norm[i,1:3],train_norm[i,4]))
 end
-
-#initializing network
-Q = 50
-model = Chain(  Dense(3,Q),  #σ(w1*x1 + w2*x2 + ...)
+#network initialization function (allows for easier iterations)
+function networkitr(data,Q,wd,iterations)
+    #model... must adjust if you want a different structure
+    itrmodel = Chain(  Dense(3,Q),  #σ(w1*x1 + w2*x2 + ...)
                 Dense(Q,Q,celu),
                 Dense(Q,Q,σ),
-                Dense(Q,1,σ)) # 1 output connect to dim = Q HL
-
-loss(x, y) = Flux.mse(model(x), y) # cost function
-opt = ADAM()
-para = Flux.params(model) # variable to represent all of our weights and biases
-#=
-for 500 iterations of our entire data set (@epochs 500) model is "trained"
-Flux.train!( cost function, weights and biases, training data, optimizer setting)
-=#
-
-
-err = []
-a = 0
-mseplot = []
-for i in 1:length(data)
-    global a = 0
-    global a = a + loss(data[i][1],data[i][2])
-end
-a = a/length(data)
-for j in 1:1000
-    global a = 0
-    global data = Random.shuffle(data)
-    Flux.train!(loss, para, data, opt)
-    for i in 1:length(data)
-        global a =  a + loss(data[i][1],data[i][2])
+                Dense(Q,1,σ)) # 1 output connect to dim = Q H
+    opt = ADAM()
+    para = Flux.params(itrmodel) # variable to represent all of our weights and biases
+    l1(x) = sum(x .^ 2)
+    loss(x, y) = Flux.mse(itrmodel(x), y) + wd * sum(l1, para) # cost function
+    loss_wout_reg(x,y) = Flux.mse(itrmodel(x), y)
+    #=
+    for 500 iterations of our entire data set (@epochs 500) model is "trained"
+    Flux.train!( cost function, weights and biases, training data, optimizer setting)
+    =#
+    lowestmse = 1.0
+    for i in 1:iterations
+        trainset = Random.shuffle(data)[1:64]
+        Flux.train!(loss, para, trainset, opt)
+        Err = 0.0
+        for datapoint in data
+            Err += loss_wout_reg(datapoint[1],datapoint[2])
+        end
+        Err = Err/length(data)
+        #calculating lowestmse
+        if lowestmse > Err
+            global iterationbest = itrmodel #setting best model to lowestmse
+            lowestmse = Err
+        end
+        #print iteration data
+        print("\rError $lowestmse Itr $i/$iterations         ")
     end
-    global a = a/length(data)
-    print("Error $a \n")
-    push!(mseplot,a)
+    return iterationbest, lowestmse
 end
-
+#iterating training diff networks
+lowestmse_overall = 1.0
+for q in [10,20,30,40]
+    for wd in [0,0.1,0.001,0.0001,0.00001,0.000001,0.0000001]
+        #training netowrk iteration
+        print("\nTesting q=$q,wd=$wd\n")
+        global iteration_best, lowestmse_itr = networkitr(data,q,wd,1000)
+        if lowestmse_itr < lowestmse_overall
+            print("\nlowestmse = $lowestmse_itr  < best overall = $lowestmse_overall\n")
+            print("Replacing Network with best network: ")
+            global best_string = "$q Nodes, $wd regularization parameter\n"
+            print(best_string)
+            global overall_best = iteration_best
+            global lowestmse_overall = lowestmse_itr
+        end
+    end
+end
 #getting test dataset
 fname = "Dataset/testing.txt"
 test_data = get_data(fname)
 test_norm,scalingmatrix = norm_data(test_data,scalingmatrix)
 mach_SCAT = [];pressure_SCAT = [];fault_SCAT = [];model_SCAT = [];
-specified_alt = 1525/12000 #TODO:update for normalization
+#specified_alt = 1525/12000 #TODO:update for normalization
 for i in 1:length(test_norm[:,1])
     #if datapoint[1] == specified_alt
         push!(mach_SCAT,test_norm[i,2])
         push!(fault_SCAT,test_norm[i,3])
         push!(pressure_SCAT,test_norm[i,4])
-        push!(model_SCAT,model(test_norm[i,1:3])[1])
+        push!(model_SCAT,overall_best(test_norm[i,1:3])[1])
     #end
 end
 #creating 3d scatter for showing network results
@@ -118,5 +134,3 @@ scatter(fault_SCAT,mach_SCAT,pressure_SCAT,label="Actual",
         ylabel="Mach",
         zlabel="Pressure (normalized)")
 scatter!(fault_SCAT,mach_SCAT,model_SCAT,label="Predicted")
-#plotting MSE over training iterations
-plot(mseplot,title="Mean Squared Error vs Epochs",xlabel="MSE",ylabel="EPOCHS",label="MSE")
