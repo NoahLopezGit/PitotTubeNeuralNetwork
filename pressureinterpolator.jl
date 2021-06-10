@@ -7,25 +7,61 @@ using Plots
 using Flux: @epochs, @show
 using BSON: @save
 using Random
+using Statistics
 
 fname = "Dataset/training.txt"
-f1 = open(fname)
-tempdata = readlines(f1)
-close(f1)
+
+#function for parsing data
+function get_data(filename)
+    f1 = open(filename)
+    tempdata = readlines(f1)
+    close(f1)
+    data = []
+    regvec = zeros(length(tempdata),
+                   length(split(tempdata[1], "\t")))
+    #parsing datavector to float array... not regularized
+    for i in 1:length(tempdata)
+        regvec[i,:] =  parse.(Float64,split(tempdata[i], "\t"))
+    end
+    return regvec
+end
+
+#normalizing data
+function norm_data(data, scalingmatrix=nothing)
+    #getting regularization values and normalizing data
+    regvec = data
+    normvec = zeros(length(regvec[:,1]),
+                    length(regvec[1,:]))
+    #checkign if optional scalingmatrix was passed, if not will calc mean and std
+    if scalingmatrix == nothing
+        scalingmatrix = zeros(length(regvec[1,:]),2)
+        for i in 1:length(regvec[1,:])
+            scalingmatrix[i,1] = Statistics.mean(regvec[:,i]) #first index is mean
+            scalingmatrix[i,2] = Statistics.std(regvec[:,i])  #second index is std
+        end
+        for i in 1:length(regvec[1,:])
+            #normalizing regvec
+            normvec[:,i] = (regvec[:,i] .- scalingmatrix[i,1]) ./ scalingmatrix[i,2]
+        end
+    else
+        #for case of normalizing test data by training std and mean
+        for i in 1:length(regvec[1,:])
+            #normalizing regvec
+            normvec[:,i] = (regvec[:,i] .- scalingmatrix[i,1]) ./ scalingmatrix[i,2]
+        end
+    end
+    return normvec, scalingmatrix
+end
+
+train_data = get_data(fname)
+train_norm, scalingmatrix = norm_data(train_data)
+#converting data to format which works with network
 data = []
-Pmax = 0.0
-for i in 1:length(tempdata)
-    global Pmax = max(parse(Float64,split(tempdata[i], "\t")[4]), Pmax)
-end
-for i in 1:length(tempdata)
-    alt = parse(Float64,split(tempdata[i], "\t")[1])/12000  #normalize by alt max
-    mach = parse(Float64,split(tempdata[i], "\t")[2])
-    fault = parse(Float64,split(tempdata[i], "\t")[3])
-    pressure = parse(Float64,split(tempdata[i], "\t")[4])/Pmax
-    push!(data,([alt, mach, fault], pressure))
+for i in 1:length(train_norm[:,1])
+    push!(data,(train_norm[i,1:3],train_norm[i,4]))
 end
 
-
+#initializing network
 Q = 50
 model = Chain(  Dense(3,Q),  #σ(w1*x1 + w2*x2 + ...)
                 Dense(Q,Q,celu),
@@ -61,43 +97,26 @@ for j in 1:1000
     push!(mseplot,a)
 end
 
+#getting test dataset
 fname = "Dataset/testing.txt"
-f2 = open(fname)
-tempdata = readlines(f2)
-close(f2)
-testdata = []
-Pmax = 0.0
-for i in 1:length(tempdata)
-    global Pmax = max(parse(Float64,split(tempdata[i], "\t")[4]), Pmax)
+test_data = get_data(fname)
+test_norm,scalingmatrix = norm_data(test_data,scalingmatrix)
+mach_SCAT = [];pressure_SCAT = [];fault_SCAT = [];model_SCAT = [];
+specified_alt = 1525/12000 #TODO:update for normalization
+for i in 1:length(test_norm[:,1])
+    #if datapoint[1] == specified_alt
+        push!(mach_SCAT,test_norm[i,2])
+        push!(fault_SCAT,test_norm[i,3])
+        push!(pressure_SCAT,test_norm[i,4])
+        push!(model_SCAT,model(test_norm[i,1:3])[1])
+    #end
 end
-for i in 1:length(tempdata)
-    alt = parse(Float64,split(tempdata[i], "\t")[1])/12000  #normalize by alt max
-    mach = parse(Float64,split(tempdata[i], "\t")[2])
-    fault = parse(Float64,split(tempdata[i], "\t")[3])
-    pressure = parse(Float64,split(tempdata[i], "\t")[4])/Pmax
-    push!(testdata, (alt,mach,fault,pressure))
-end
-
-mach_SCAT = []
-pressure_SCAT = []
-fault_SCAT = []
-model_SCAT = []
-specified_alt = 1525/12000
-
-for datapoint in testdata
-    if datapoint[1] == specified_alt
-        push!(mach_SCAT,datapoint[2])
-        push!(fault_SCAT,datapoint[3])
-        push!(pressure_SCAT,datapoint[4])
-        push!(model_SCAT,model([datapoint[1],datapoint[2],datapoint[3]])[1])
-    end
-end
-
+#creating 3d scatter for showing network results
 scatter(fault_SCAT,mach_SCAT,pressure_SCAT,label="Actual",
         title="Predictions with Testing Data [1525m]",
         xlabel="Fault Parameter",
         ylabel="Mach",
         zlabel="Pressure (normalized)")
-
 scatter!(fault_SCAT,mach_SCAT,model_SCAT,label="Predicted")
+#plotting MSE over training iterations
 plot(mseplot,title="Mean Squared Error vs Epochs",xlabel="MSE",ylabel="EPOCHS",label="MSE")
