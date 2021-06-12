@@ -56,6 +56,7 @@ end
 fname = "Dataset/training.txt"
 train_data = get_data(fname)
 train_norm, scalingmatrix = norm_data(train_data)
+train_norm[:,3] = train_norm[:,3] #flipping fault value to see if it is easier to train
 #converting data to format which works with network
 data = []
 for i in 1:length(train_norm[:,1])
@@ -65,12 +66,12 @@ end
 #network initialization function (allows for easier iterations)
 function networkitr(data,Q,wd,iterations)
     #model... must adjust if you want a different structure
-    itrmodel = Chain(  Dense(3,Q),  #σ(w1*x1 + w2*x2 + ...)
-                Dense(Q,Q,gelu),
-                Dense(Q,Q,gelu),
-                Dense(Q,Q,gelu),
-                Dense(Q,Q,gelu),
-                Dense(Q,1)) # 1 output connect to dim = Q H
+    itrmodel = Chain(Dense(3,Q),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,1))
     opt = ADAM()
     para = Flux.params(itrmodel) # variable to represent all of our weights and biases
     l1(x) = sum(x .^ 2)
@@ -101,8 +102,8 @@ function networkitr(data,Q,wd,iterations)
 end
 #iterating training diff networks
 lowestmse_overall = 1.0
-for q in [10,20,30,40]
-    for wd in [0,0.1,0.001,0.0001,0.00001,0.000001,0.0000001]
+for q in [10,11,12,13,14,15,16,17,18,19,20]
+    for wd in [0,0.000001,0.0000001]
         #training netowrk iteration
         print("\nTesting q=$q,wd=$wd\n")
         global iteration_best, lowestmse_itr = networkitr(data,q,wd,1000)
@@ -127,13 +128,13 @@ for i in 1:length(test_norm[:,1])
         push!(mach_SCAT,test_norm[i,2])
         push!(fault_SCAT,test_norm[i,3])
         push!(pressure_SCAT,test_norm[i,4])
-        push!(model_SCAT,overall_best(test_norm[i,1:3])[1])
+        push!(model_SCAT,overall_best(test_norm[i,[1,2,4]])[1])
     #end
 end
 #creating 3d scatter for showing network results
-scatter(fault_SCAT,mach_SCAT,pressure_SCAT,label="Actual",
+scatter(pressure_SCAT,mach_SCAT,fault_SCAT,label="Actual",
         title="Predictions with Testing Data [1525m]",
-        xlabel="Fault Parameter",
+        xlabel="Pressure",
         ylabel="Mach",
-        zlabel="Pressure (normalized)")
-scatter!(fault_SCAT,mach_SCAT,model_SCAT,label="Predicted")
+        zlabel="Fault Parameter")
+scatter!(pressure_SCAT,mach_SCAT,model_SCAT,label="Predicted")
