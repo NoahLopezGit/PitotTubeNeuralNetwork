@@ -94,12 +94,12 @@ end
 function networkitr(data,Q,wd,iterations)
     #model... must adjust if you want a different structure
     itrmodel = Chain(Dense(3,Q),
-                        Dense(Q,Q,tanh),
-                        Dense(Q,Q,tanh),
-                        Dense(Q,Q,tanh),
-                        Dense(Q,Q,tanh),
-                        Dense(Q,Q,tanh),
-                        Dense(Q,Q,tanh),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,gelu),
                         Dense(Q,1))
     opt = ADAM()
     para = Flux.params(itrmodel) # variable to represent all of our weights and biases
@@ -129,6 +129,7 @@ function networkitr(data,Q,wd,iterations)
     end
     return iterationbest, lowestmse
 end
+
 #iterating training diff networks
 lowestmse_overall = 1.0
 for q in [16]
@@ -146,6 +147,7 @@ for q in [16]
         end
     end
 end
+print("Best Network: " + best_string + "with $lowest_mse_overall MSE")
 #getting test dataset
 test_norm,scalingmatrix = norm_data(test_data,scalingmatrix)
 mach_SCAT = [];pressure_SCAT = [];fault_SCAT = [];model_SCAT = [];
