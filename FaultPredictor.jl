@@ -53,29 +53,36 @@ function norm_data(data, scalingmatrix=nothing)
     return normvec, scalingmatrix
 end
 
+
+function vecvec_to_matrix(vecvec)
+    dim1 = length(vecvec)
+    dim2 = length(vecvec[1])
+    my_array = zeros(dim1, dim2)
+    for i in 1:dim1
+        for j in 1:dim2
+            my_array[i,j] = vecvec[i][j]
+        end
+    end
+    return my_array
+end
+
+
 #getting training data
 fname = "Dataset/FINAL_DATA.txt"
 data_tmp = get_data(fname)
-for i in length(data_tmp)
-    if data_tmp[i,2] in [0.3,0.38,0.46,0.53,0.61,0.65] #training case
-        train_data = data_tmp[i,:]
-    else #testing case
-        test_data = data_tmp[i,:]
-    end
-end
-
 #seperating test and train data
-train_data = []; test_data = [];
-for i in 1:length(train_data)
+train_data_tmp = []; test_data_tmp = [];
+for i in 1:length(data_tmp[:,1])
     if data_tmp[i,2] in [0.3,0.38,0.46,0.53,0.61,0.65] #training case
-        push!(train_data, data_tmp[i,:])
+        push!(train_data_tmp, data_tmp[i,:])
     else #testing case
-        push!(test_data, data_tmp[i,:])
+        push!(test_data_tmp, data_tmp[i,:])
     end
 end
+train_data = vecvec_to_matrix(train_data_tmp)
+test_data = vecvec_to_matrix(test_data_tmp)
 #normalizing data
 train_norm, scalingmatrix = norm_data(train_data)
-train_norm[:,3] = train_norm[:,3]
 
 #converting data to format which works with network
 data = []
