@@ -147,7 +147,7 @@ for q in [16]
         end
     end
 end
-print("Best Network: " + best_string + "with $lowestmse_overall MSE")
+print("Best Network: ", best_string, "with $lowestmse_overall MSE")
 #getting test dataset
 test_norm,scalingmatrix = norm_data(test_data,scalingmatrix)
 mach_SCAT = [];pressure_SCAT = [];fault_SCAT = [];model_SCAT = [];
