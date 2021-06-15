@@ -65,9 +65,11 @@ end
 function networkitr(data,Q,wd,iterations)
     #model... must adjust if you want a different structure
     itrmodel = Chain(  Dense(3,Q),  #σ(w1*x1 + w2*x2 + ...)
-                Dense(Q,Q,celu),
-                Dense(Q,Q,σ),
-                Dense(Q,1,σ)) # 1 output connect to dim = Q H
+                Dense(Q,Q,gelu),
+                Dense(Q,Q,gelu),
+                Dense(Q,Q,gelu),
+                Dense(Q,Q,gelu),
+                Dense(Q,1)) # 1 output connect to dim = Q H
     opt = ADAM()
     para = Flux.params(itrmodel) # variable to represent all of our weights and biases
     l1(x) = sum(x .^ 2)

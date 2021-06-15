@@ -14,13 +14,14 @@ using Statistics
 function get_data(filename)
     f1 = open(filename)
     tempdata = readlines(f1)
+    tempdata[1] = tempdata[1][4:end]
     close(f1)
     data = []
     regvec = zeros(length(tempdata),
-                   length(split(tempdata[1], "\t")))
+                   length(split(tempdata[1], ",")))
     #parsing datavector to float array... not regularized
     for i in 1:length(tempdata)
-        regvec[i,:] =  parse.(Float64,split(tempdata[i], "\t"))
+        regvec[i,:] =  parse.(Float64,split(tempdata[i], ","))
     end
     return regvec
 end
@@ -53,10 +54,29 @@ function norm_data(data, scalingmatrix=nothing)
 end
 
 #getting training data
-fname = "Dataset/training.txt"
-train_data = get_data(fname)
+fname = "Dataset/FINAL_DATA.txt"
+data_tmp = get_data(fname)
+for i in length(data_tmp)
+    if data_tmp[i,2] in [0.3,0.38,0.46,0.53,0.61,0.65] #training case
+        train_data = data_tmp[i,:]
+    else #testing case
+        test_data = data_tmp[i,:]
+    end
+end
+
+#seperating test and train data
+train_data = []; test_data = [];
+for i in 1:length(train_data)
+    if data_tmp[i,2] in [0.3,0.38,0.46,0.53,0.61,0.65] #training case
+        push!(train_data, data_tmp[i,:])
+    else #testing case
+        push!(test_data, data_tmp[i,:])
+    end
+end
+#normalizing data
 train_norm, scalingmatrix = norm_data(train_data)
-train_norm[:,3] = train_norm[:,3] #flipping fault value to see if it is easier to train
+train_norm[:,3] = train_norm[:,3]
+
 #converting data to format which works with network
 data = []
 for i in 1:length(train_norm[:,1])
@@ -67,10 +87,12 @@ end
 function networkitr(data,Q,wd,iterations)
     #model... must adjust if you want a different structure
     itrmodel = Chain(Dense(3,Q),
-                        Dense(Q,Q,gelu),
-                        Dense(Q,Q,gelu),
-                        Dense(Q,Q,gelu),
-                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,tanh),
+                        Dense(Q,Q,tanh),
+                        Dense(Q,Q,tanh),
+                        Dense(Q,Q,tanh),
+                        Dense(Q,Q,tanh),
+                        Dense(Q,Q,tanh),
                         Dense(Q,1))
     opt = ADAM()
     para = Flux.params(itrmodel) # variable to represent all of our weights and biases
@@ -102,11 +124,11 @@ function networkitr(data,Q,wd,iterations)
 end
 #iterating training diff networks
 lowestmse_overall = 1.0
-for q in [10,11,12,13,14,15,16,17,18,19,20]
-    for wd in [0,0.000001,0.0000001]
+for q in [16]
+    for wd in collect(range(1.0e-8,1.0e-6,length=10))
         #training netowrk iteration
         print("\nTesting q=$q,wd=$wd\n")
-        global iteration_best, lowestmse_itr = networkitr(data,q,wd,1000)
+        global iteration_best, lowestmse_itr = networkitr(data,q,wd,2000)
         if lowestmse_itr < lowestmse_overall
             print("\nlowestmse = $lowestmse_itr  < best overall = $lowestmse_overall\n")
             print("Replacing Network with best network: ")
@@ -118,8 +140,6 @@ for q in [10,11,12,13,14,15,16,17,18,19,20]
     end
 end
 #getting test dataset
-fname = "Dataset/testing.txt"
-test_data = get_data(fname)
 test_norm,scalingmatrix = norm_data(test_data,scalingmatrix)
 mach_SCAT = [];pressure_SCAT = [];fault_SCAT = [];model_SCAT = [];
 #specified_alt = 1525/12000 #TODO:update for normalization

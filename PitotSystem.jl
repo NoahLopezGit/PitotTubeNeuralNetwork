@@ -6,7 +6,7 @@ using F16Model, LinearAlgebra#, PyPlot # Load the packages.
 using BSON: @load
 using Flux
 @load "Models/PressurePrediction.bson" model
-@load "Models/FaultPrediction.bson" FaultModel
+@load "Models/Fault2_overall_best.bson" overall_best
 
 
 #=
@@ -214,7 +214,7 @@ for i in 1:nSteps
     Pstag = model([altexact,machexact,fault])[1] #normalized by Pmax
 
     #fault prediction
-    faultpredict = FaultModel([altKF,machKF,Pstag])
+    faultpredict = overall_best([altKF,machKF,Pstag])
     print(faultpredict,"\n") #should desired fault parameter
     #print(μ_post,"\n")
     # No filtering.
