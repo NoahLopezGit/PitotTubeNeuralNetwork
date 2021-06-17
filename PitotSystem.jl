@@ -188,7 +188,7 @@ ny = size(C,1);
 
 nSteps = 200; # Propagate nSteps
 Sig = [];faultlist = []; machlist = []; altlist = [];
-basefault = collect(range(0.0,1.0,length=nSteps))
+basefault = 0.9*ones(nSteps)
 for i in 1:nSteps
     μ_prior .= Ad*μ_post; # Propagate μ
     Σ_prior .= Ad*Σ_post*Ad' + Bd*Q*Bd'; # Propagate Σ
