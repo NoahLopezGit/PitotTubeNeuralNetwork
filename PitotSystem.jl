@@ -188,6 +188,7 @@ ny = size(C,1);
 
 nSteps = 200; # Propagate nSteps
 Sig = [];faultlist = []; machlist = []; altlist = [];
+basefault = collect(range(0.0,1.0,length=nSteps))
 for i in 1:nSteps
     μ_prior .= Ad*μ_post; # Propagate μ
     Σ_prior .= Ad*Σ_post*Ad' + Bd*Q*Bd'; # Propagate Σ
@@ -224,7 +225,7 @@ for i in 1:nSteps
     machKF_norm = (machKF - mach_mean)/mach_std  #normalizing
 
     #pressure prediction
-    global fault = 0.99
+    global fault = basefault[i]
     global fault_norm = (fault - fault_mean)/fault_std #set to desired fault
     Pstag_norm = pressuremodel([altexact_norm,machexact_norm,fault_norm])[1]
     #fault prediction
@@ -243,20 +244,39 @@ for i in 1:nSteps
     # println(" Diagonal(Σ): ", Diagonal(Σ_post).diag);
     #push!(Sig,Diagonal(Σ_post).diag)
     #
-    # # Save the  data with Kalman filtering switched on.
+    # # Save the  data with Kalman filtering switch ed on.
 
 end
 
 #creating 3d line plot to display results
-basefault  = fault*ones(nSteps)
+
 
 plot(machlist,altlist,faultlist,
         title="Fault Prediction over Mach/Altitude Flight Path",
         xlabel="mach",
         ylabel="altitude (m)",
         zlabel="Fault Parameter",
-        label="Neural Network")   #actual results
+        label="Neural Network",
+        zlims=[0,1],
+        lw=2)   #actual results
 plot!(machlist,altlist,basefault,
-        label="Base Fault")  #base values to compare
+        label="Base Fault",
+        l2=2)  #base values to compare
+
 plot!(machlist,altlist,zeros(nSteps),
         label="Path Trace")  #trace on bottom
+
+for i in 1:nSteps÷5
+    plot!([machlist[5*i],machlist[5*i]],
+            [altlist[5*i],altlist[5*i]],
+            [basefault[5*i],faultlist[5*i]],
+            linecolor=:grey,label=nothing)
+    if i == 1
+        plot!([machlist[5*i],machlist[5*i]],
+                [altlist[5*i],altlist[5*i]],
+                [basefault[5*i],faultlist[5*i]],
+                linecolor=:grey,label="Difference")
+    end
+    print("\rline $i/$nSteps  ")
+end
+current()
