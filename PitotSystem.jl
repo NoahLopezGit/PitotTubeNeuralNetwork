@@ -7,7 +7,7 @@ using BSON: @load
 using Flux
 @load "Models/Pressure_overall_best.bson" Pressure_overall_best
 pressuremodel = Pressure_overall_best
-@load "Models/Fault3_overall_best.bson" overall_best
+@load "Models/fault3_overall_best.bson" overall_best
 faultmodel = overall_best
 
 
@@ -210,7 +210,7 @@ for i in 1:nSteps
 
     #exact state
     altexact = (h0+xTrue[3])*0.3048  #converted ft to meters
-    altexact_norm = (h0+xTrue[3]-alt_mean)/alt_std #normalizing
+    altexact_norm = (altexact - alt_mean)/alt_std #normalizing
     machexact,qbar,ps = F16Model.atmos(h0+xTrue[3],Vt0+xTrue[5]);
     machexact_norm = (machexact - mach_mean)/mach_std #normalizing
     #saving mach and alt steps for graphing later
@@ -219,19 +219,19 @@ for i in 1:nSteps
 
     #kalman state
     altKF = (h0+μ_post[3])*0.3048  #converted feet to meters
-    altKF_norm = (h0+μ_post[3] - alt_mean)/alt_std  #normalizing
+    altKF_norm = (altKF - alt_mean)/alt_std  #normalizing
     machKF,qbar,ps = F16Model.atmos(h0+μ_post[3],Vt0+μ_post[5]);
     machKF_norm = (machKF - mach_mean)/mach_std  #normalizing
 
     #pressure prediction
-    global fault = 0.0
+    global fault = 0.99
     global fault_norm = (fault - fault_mean)/fault_std #set to desired fault
     Pstag_norm = pressuremodel([altexact_norm,machexact_norm,fault_norm])[1]
     #fault prediction
     faultpredict_norm = faultmodel([altKF_norm,machKF_norm,Pstag_norm])[1]
     faultpredict = (faultpredict_norm * fault_std) + fault_mean
-    print(faultpredict_norm,"\n")
     push!(faultlist, faultpredict)
+    print(faultpredict,"\n")
     #print(faultpredict,"\n") #should desired fault parameter
     #print(μ_post,"\n")
     # No filtering.
