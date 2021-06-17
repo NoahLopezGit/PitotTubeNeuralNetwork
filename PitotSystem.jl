@@ -2,12 +2,20 @@ cd(@__DIR__)
 using Pkg
 Pkg.activate(".")
 
-using F16Model, LinearAlgebra#, PyPlot # Load the packages.
+using F16Model, LinearAlgebra, Plots
 using BSON: @load
 using Flux
 @load "Models/PressurePrediction.bson" model
-@load "Models/Fault2_overall_best.bson" overall_best
+pressuremodel = model
+@load "Models/Fault3_overall_best.bson" overall_best
+faultmodel = overall_best
 
+
+#just copied and pasted these... might want to automate in future
+fault_std = 0.310076;fault_mean = 0.741667;
+alt_std = 3345.34; alt_mean = 6762.5;
+mach_std = 0.123024;mach_mean = 0.488333;
+pressure_std = 24622.9; pressure_mean = 53718.4;
 
 #=
 Aircraft states are:
@@ -179,7 +187,7 @@ R = SensorScalingMatrix*SensorScalingMatrix'; # Noises of the sensors - diagonal
 ny = size(C,1);
 
 nSteps = 50; # Propagate nSteps
-Sig = [];
+Sig = [];faultlist = []; machlist = []; altlist = [];
 for i in 1:nSteps
     μ_prior .= Ad*μ_post; # Propagate μ
     Σ_prior .= Ad*Σ_post*Ad' + Bd*Q*Bd'; # Propagate Σ
@@ -201,21 +209,29 @@ for i in 1:nSteps
     Σ_post .= (I(nz) - K*Ca)*Σ_prior;
 
     #exact state
-    altexact = (h0+xTrue[3])*0.0003048/12 #norm
+    altexact = (h0+xTrue[3])*0.3048  #converted ft to meters
+    altexact_norm = (h0+xTrue[3])-alt_mean/alt_std #normalizing
     machexact,qbar,ps = F16Model.atmos(h0+xTrue[3],Vt0+xTrue[5]);
-
+    machexact_norm = (machexact - mach_mean)/mach_std #normalizing
+    #saving mach and alt steps for graphing later
+    push!(machlist, machexact)
+    push!(altlist, altexact)
 
     #kalman state
-    altKF = (h0+μ_post[3])*0.0003048/12 #normalized by 12000
+    altKF = (h0+μ_post[3])*0.3048  #converted feet to meters
+    altKF_norm = (h0+μ_post[3] - alt_mean)/alt_std  #normalizing
     machKF,qbar,ps = F16Model.atmos(h0+μ_post[3],Vt0+μ_post[5]);
+    machKF_norm = (machKF - mach_mean)/mach_std  #normalizing
 
     #pressure prediction
-    fault = 0.5 #set to desired fault
-    Pstag = model([altexact,machexact,fault])[1] #normalized by Pmax
-
+    global fault = 0.9
+    global fault_norm = (fault - fault_mean)/fault_std #set to desired fault
+    Pstag_norm = pressuremodel([altexact_norm,machexact_norm,fault_norm])[1] #normalized by Pmax
     #fault prediction
-    faultpredict = overall_best([altKF,machKF,Pstag])
-    print(faultpredict,"\n") #should desired fault parameter
+    faultpredict_norm = faultmodel([altKF_norm,machKF_norm,Pstag_norm])[1]
+    faultpredict = (faultpredict_norm * fault_std) + fault_mean
+    push!(faultlist, faultpredict)
+    #print(faultpredict,"\n") #should desired fault parameter
     #print(μ_post,"\n")
     # No filtering.
     # μ_post = μ_prior;
@@ -224,26 +240,22 @@ for i in 1:nSteps
     # Saving the data the open-loop uncertainty propagation.
     # print("μ: ",μ);
     # println(" Diagonal(Σ): ", Diagonal(Σ_post).diag);
-    push!(Sig,Diagonal(Σ_post).diag)
+    #push!(Sig,Diagonal(Σ_post).diag)
     #
     # # Save the  data with Kalman filtering switched on.
 
 end
 
-#=
-#had to modify this to plot the Npos and Epos uncertainty graphs
-Sig1 = hcat(Sig...);
-pygui(true); figure(1); clf();
-titles = ["Npos","Epos","ALt",L"\theta","V",L"\alpha","q"];
-units = ["Ft","Ft","Ft","rad","ft/s","rad","rad/s"];
+#creating 3d line plot to display results
+basefault  = fault*ones(nSteps)
 
-# TO DO 3: Plot uncertainty evolution with both open-loop and with Kalman filtering
-for j=1:7
-    subplot(3,3,j);
-    # plot(((1:nSteps) .- 1)*dt,sqrt.(Sig1[j,:]))
-    fill_between(((1:nSteps) .- 1)*dt,-sqrt.(Sig1[j,:]),sqrt.(Sig1[j,:]),alpha=0.5);
-    xlabel("Seconds");
-    title(L"\pm \sigma(" * titles[j] * ") " * units[j]);
-end
-tight_layout();
-=#
+plot(machlist,altlist,faultlist,
+        title="Fault Prediction over Mach/Altitude Flight Path",
+        xlabel="mach",
+        ylabel="altitude (m)",
+        zlabel="Fault Parameter",
+        label="Neural Network")   #actual results
+plot!(machlist,altlist,basefault,
+        label="Base Fault")  #base values to compare
+plot!(machlist,altlist,zeros(nSteps),
+        label="Path Trace")  #trace on bottom
