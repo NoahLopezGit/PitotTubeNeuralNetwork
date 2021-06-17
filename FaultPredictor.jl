@@ -66,7 +66,6 @@ function vecvec_to_matrix(vecvec)
     return my_array
 end
 
-
 #getting training data
 fname = "Dataset/FINAL_DATA.txt"
 data_tmp = get_data(fname)
