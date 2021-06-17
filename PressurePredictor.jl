@@ -14,13 +14,14 @@ using Statistics
 function get_data(filename)
     f1 = open(filename)
     tempdata = readlines(f1)
+    tempdata[1] = tempdata[1][4:end]  #cutting of beggining bc some weird chars
     close(f1)
     data = []
     regvec = zeros(length(tempdata),
-                   length(split(tempdata[1], "\t")))
+                   length(split(tempdata[1], ",")))
     #parsing datavector to float array... not regularized
     for i in 1:length(tempdata)
-        regvec[i,:] =  parse.(Float64,split(tempdata[i], "\t"))
+        regvec[i,:] =  parse.(Float64,split(tempdata[i], ","))
     end
     return regvec
 end
@@ -31,7 +32,7 @@ function norm_data(data, scalingmatrix=nothing)
     regvec = data
     normvec = zeros(length(regvec[:,1]),
                     length(regvec[1,:]))
-    #checkign if optional scalingmatrix was passed, if not will calc mean and std
+    #checking if optional scalingmatrix was passed, if not will calc mean and std
     if scalingmatrix == nothing
         scalingmatrix = zeros(length(regvec[1,:]),2)
         for i in 1:length(regvec[1,:])
@@ -52,19 +53,48 @@ function norm_data(data, scalingmatrix=nothing)
     return normvec, scalingmatrix
 end
 
+#function to convert vector of vector to matrix
+function vecvec_to_matrix(vecvec)
+    dim1 = length(vecvec)
+    dim2 = length(vecvec[1])
+    my_array = zeros(dim1, dim2)
+    for i in 1:dim1
+        for j in 1:dim2
+            my_array[i,j] = vecvec[i][j]
+        end
+    end
+    return my_array
+end
+
 #getting training data
-fname = "Dataset/training.txt"
-train_data = get_data(fname)
+fname = "Dataset/FINAL_DATA.txt"
+data_tmp = get_data(fname)
+#seperating test and train data
+train_data_tmp = []; test_data_tmp = [];
+for i in 1:length(data_tmp[:,1])
+    if data_tmp[i,2] in [0.3,0.38,0.46,0.53,0.61,0.65] #training case
+        push!(train_data_tmp, data_tmp[i,:])
+    else #testing case
+        push!(test_data_tmp, data_tmp[i,:])
+    end
+end
+train_data = vecvec_to_matrix(train_data_tmp)
+test_data = vecvec_to_matrix(test_data_tmp)
+#normalizing data
 train_norm, scalingmatrix = norm_data(train_data)
+test_norm, scalingmatrix = norm_data(test_data,scalingmatrix)
 #converting data to format which works with network
 data = []
 for i in 1:length(train_norm[:,1])
-    push!(data,(train_norm[i,1:3],train_norm[i,4]))
+    #adjust x and y for fault detection here
+    push!(data,(train_norm[i,[1,2,3]],train_norm[i,4]))
 end
 #network initialization function (allows for easier iterations)
 function networkitr(data,Q,wd,iterations)
     #model... must adjust if you want a different structure
     itrmodel = Chain(  Dense(3,Q),  #σ(w1*x1 + w2*x2 + ...)
+                Dense(Q,Q,gelu),
+                Dense(Q,Q,gelu),
                 Dense(Q,Q,gelu),
                 Dense(Q,Q,gelu),
                 Dense(Q,Q,gelu),
@@ -100,11 +130,11 @@ function networkitr(data,Q,wd,iterations)
 end
 #iterating training diff networks
 lowestmse_overall = 1.0
-for q in [10,20,30,40]
-    for wd in [0,0.1,0.001,0.0001,0.00001,0.000001,0.0000001]
+for q in [8,16,32]
+    for wd in [0,0.00001,0.000001,0.0000001]
         #training netowrk iteration
         print("\nTesting q=$q,wd=$wd\n")
-        global iteration_best, lowestmse_itr = networkitr(data,q,wd,1000)
+        global iteration_best, lowestmse_itr = networkitr(data,q,wd,2000)
         if lowestmse_itr < lowestmse_overall
             print("\nlowestmse = $lowestmse_itr  < best overall = $lowestmse_overall\n")
             print("Replacing Network with best network: ")
@@ -115,10 +145,8 @@ for q in [10,20,30,40]
         end
     end
 end
+print("best networkw was: ", best_string, "with Error $lowestmse_overall")
 #getting test dataset
-fname = "Dataset/testing.txt"
-test_data = get_data(fname)
-test_norm,scalingmatrix = norm_data(test_data,scalingmatrix)
 mach_SCAT = [];pressure_SCAT = [];fault_SCAT = [];model_SCAT = [];
 #specified_alt = 1525/12000 #TODO:update for normalization
 for i in 1:length(test_norm[:,1])

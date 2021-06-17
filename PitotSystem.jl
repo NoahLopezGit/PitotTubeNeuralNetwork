@@ -5,8 +5,8 @@ Pkg.activate(".")
 using F16Model, LinearAlgebra, Plots
 using BSON: @load
 using Flux
-@load "Models/PressurePrediction.bson" model
-pressuremodel = model
+@load "Models/Pressure_overall_best.bson" Pressure_overall_best
+pressuremodel = Pressure_best
 @load "Models/Fault3_overall_best.bson" overall_best
 faultmodel = overall_best
 
@@ -186,7 +186,7 @@ R = SensorScalingMatrix*SensorScalingMatrix'; # Noises of the sensors - diagonal
 
 ny = size(C,1);
 
-nSteps = 50; # Propagate nSteps
+nSteps = 200; # Propagate nSteps
 Sig = [];faultlist = []; machlist = []; altlist = [];
 for i in 1:nSteps
     μ_prior .= Ad*μ_post; # Propagate μ
@@ -224,12 +224,13 @@ for i in 1:nSteps
     machKF_norm = (machKF - mach_mean)/mach_std  #normalizing
 
     #pressure prediction
-    global fault = 0.9
+    global fault = 0.5
     global fault_norm = (fault - fault_mean)/fault_std #set to desired fault
-    Pstag_norm = pressuremodel([altexact_norm,machexact_norm,fault_norm])[1] #normalized by Pmax
+    global Pstag_norm = pressuremodel([altexact_norm,machexact_norm,fault_norm])[1] #normalized by Pmax
     #fault prediction
     faultpredict_norm = faultmodel([altKF_norm,machKF_norm,Pstag_norm])[1]
     faultpredict = (faultpredict_norm * fault_std) + fault_mean
+    print(faultpredict,'\n')
     push!(faultlist, faultpredict)
     #print(faultpredict,"\n") #should desired fault parameter
     #print(μ_post,"\n")
