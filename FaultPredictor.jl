@@ -156,12 +156,12 @@ alt_std = scalingmatrix[1,2]
 mach_SCAT = [];pressure_SCAT = [];fault_SCAT = [];model_SCAT = [];
 specified_alt = (6180.56 - alt_mean)/alt_std
 for i in 1:length(test_norm[:,1])
-    #if test_norm[i,1] == specified_alt
+    if test_norm[i,1] == specified_alt
         push!(mach_SCAT,test_norm[i,2])
         push!(fault_SCAT,test_norm[i,3])
         push!(pressure_SCAT,test_norm[i,4])
         push!(model_SCAT,overall_best(test_norm[i,[1,2,4]])[1])
-    #end
+    end
 end
 #creating 3d scatter for showing network results
 scatter(pressure_SCAT,mach_SCAT,fault_SCAT,label="Actual",
@@ -170,3 +170,23 @@ scatter(pressure_SCAT,mach_SCAT,fault_SCAT,label="Actual",
         ylabel="Mach",
         zlabel="Fault Parameter")
 scatter!(pressure_SCAT,mach_SCAT,model_SCAT,label="Predicted")
+
+
+#error analysis
+#TODO: %err is tricky around 0 find a better way to present the error
+test_percenterr_sum = 0.0
+for i in 1:length(test_norm[:,1])
+    global test_percenterr_sum += abs((overall_best(test_norm[i,[1,2,4]])[1] -
+                                test_norm[i,3])/test_norm[i,3])
+end
+test_percenterr = test_percenterr_sum/length(test_norm[:,1])
+
+train_percenterr_sum = 0.0
+for i in 1:length(train_norm[:,1])
+    global train_percenterr_sum += abs((overall_best(train_norm[i,[1,2,4]])[1] -
+                                train_norm[i,3])/train_norm[i,3])
+end
+train_percenterr = train_percenterr_sum/length(train_norm[:,1])
+
+print("Test Set %Err = $test_percenterr \n")
+print("Train Set %Err = $train_percenterr \n")

@@ -89,6 +89,8 @@ for i in 1:length(train_norm[:,1])
     #adjust x and y for fault detection here
     push!(data,(train_norm[i,[1,2,3]],train_norm[i,4]))
 end
+
+
 #network initialization function (allows for easier iterations)
 function networkitr(data,Q,wd,iterations)
     #model... must adjust if you want a different structure
@@ -148,19 +150,62 @@ end
 print("best networkw was: ", best_string, "with Error $lowestmse_overall")
 #getting test dataset
 mach_SCAT = [];pressure_SCAT = [];fault_SCAT = [];model_SCAT = [];
-#specified_alt = 1525/12000 #TODO:update for normalization
+machline = []; pressureline = []; faultline = [];
+test_norm,scalingmatrix = norm_data(test_data,scalingmatrix)
+alt_mean = scalingmatrix[1,1]; alt_std = scalingmatrix[1,2];
+mach_mean = scalingmatrix[2,1]; mach_std = scalingmatrix[2,2];
+specified_alt = (1525 - alt_mean)/alt_std
+specified_mach = (0.49 - mach_mean)/mach_std
 for i in 1:length(test_norm[:,1])
-    #if datapoint[1] == specified_alt
-        push!(mach_SCAT,test_norm[i,2])
-        push!(fault_SCAT,test_norm[i,3])
-        push!(pressure_SCAT,test_norm[i,4])
+    mach = test_norm[i,2]
+    fault = test_norm[i,3]
+    pressure = test_norm[i,4]
+    alt = test_norm[i,1]
+    if alt == specified_alt
+        push!(mach_SCAT,mach)
+        push!(fault_SCAT,fault)
+        push!(pressure_SCAT,pressure)
         push!(model_SCAT,overall_best(test_norm[i,1:3])[1])
-    #end
+    end
+    if mach == specified_mach && alt == specified_alt
+        push!(machline, mach)
+        push!(pressureline, pressure)
+        push!(faultline, fault)
+    end
 end
 #creating 3d scatter for showing network results
 scatter(fault_SCAT,mach_SCAT,pressure_SCAT,label="Actual",
         title="Predictions with Testing Data [1525m]",
         xlabel="Fault Parameter",
         ylabel="Mach",
-        zlabel="Pressure (normalized)")
+        zlabel="Pressure")
 scatter!(fault_SCAT,mach_SCAT,model_SCAT,label="Predicted")
+plot!(faultline,machline,pressureline, label="Constant Mach/Alt")
+
+
+#error analysis: need to do this in non-normalized data
+pressure_mean = scalingmatrix[4,1]
+pressure_std = scalingmatrix[4,2]
+
+test_percenterr_sum = 0.0
+for i in 1:length(test_norm[:,1])
+    #converting to pascals to avoid issues with 0 for percent error
+    predicted = (overall_best(test_norm[i,[1,2,3]])[1] * pressure_std) + pressure_mean
+    actual = (test_norm[i,4] * pressure_std) + pressure_mean
+    global test_percenterr_sum += abs(predicted-actual)/actual
+end
+test_percenterr = 100*test_percenterr_sum/length(test_norm[:,1])
+
+train_percenterr_sum = 0.0
+for i in 1:length(train_norm[:,1])
+    #converting to pascals to avoid issues with 0 for percent error
+    predicted = (overall_best(train_norm[i,[1,2,3]])[1] * pressure_std) + pressure_mean
+    actual = (train_norm[i,4] * pressure_std) + pressure_mean
+    global train_percenterr_sum += abs(predicted-actual)/actual
+end
+train_percenterr = 100*train_percenterr_sum/length(train_norm[:,1])
+
+print("Test Set %Err = $test_percenterr \n")
+print("Train Set %Err = $train_percenterr \n")
+
+#calculating percent change along constant mach/altitude lines
