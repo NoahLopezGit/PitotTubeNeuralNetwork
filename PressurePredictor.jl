@@ -225,3 +225,19 @@ print("Test Set %Err = $test_percenterr \n")
 print("Train Set %Err = $train_percenterr \n")
 
 #TODO:calculating percent change along constant mach/altitude lines
+#grab all 0 and 0.99 mach values from training set
+zero_fault = [];  ninetynine_fault = [];
+for i in 1:length(train_data[:,1])
+    if train_data[i,3] == 0
+        push!(zero_fault, train_data[i,4])
+    elseif train_data[i,3] == 0.99
+        push!(ninetynine_fault, train_data[i,4])
+    end
+end
+#calculating average percent change along const. mach/alt line
+percent_change_avg = 0.0
+for i in 1:length(zero_fault)
+    global percent_change_avg += 100/length(zero_fault)*abs((zero_fault[i]
+                            - ninetynine_fault[i])/ninetynine_fault[i])
+end
+print("Average percent change along constant mach/alt lines is $percent_change_avg%")
