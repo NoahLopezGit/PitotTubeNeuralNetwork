@@ -7,8 +7,8 @@ using BSON: @load
 using Flux
 @load "Models/Pressure_overall_best.bson" Pressure_overall_best
 pressuremodel = Pressure_overall_best
-@load "Models/fault3_overall_best.bson" overall_best
-faultmodel = overall_best
+@load "Models/Fault4_Fault_Model.bson" Fault_Model
+faultmodel = Fault_Model
 
 
 #just copied and pasted these... might want to automate in future
@@ -188,7 +188,7 @@ ny = size(C,1);
 
 nSteps = 200; # Propagate nSteps
 Sig = [];faultlist = []; machlist = []; altlist = [];
-basefault = 0.0*ones(nSteps)
+basefault = collect(range(1,0,length=nSteps))
 for i in 1:nSteps
     μ_prior .= Ad*μ_post; # Propagate μ
     Σ_prior .= Ad*Σ_post*Ad' + Bd*Q*Bd'; # Propagate Σ
