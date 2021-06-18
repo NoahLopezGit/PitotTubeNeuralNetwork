@@ -149,24 +149,37 @@ for q in [8,16,32]
 end
 print("best networkw was: ", best_string, "with Error $lowestmse_overall")
 #getting test dataset
+plotline = false;altitudeslice = false; #set these to true/false to adjust what is plotted
+#lists to be plotted
 mach_SCAT = [];pressure_SCAT = [];fault_SCAT = [];model_SCAT = [];
 machline = []; pressureline = []; faultline = [];
+#getting data to be plotted
 test_norm,scalingmatrix = norm_data(test_data,scalingmatrix)
+#specified_alt/mach for altitude slice and plotline respectively
 alt_mean = scalingmatrix[1,1]; alt_std = scalingmatrix[1,2];
 mach_mean = scalingmatrix[2,1]; mach_std = scalingmatrix[2,2];
 specified_alt = (1525 - alt_mean)/alt_std
 specified_mach = (0.49 - mach_mean)/mach_std
+#organizing plotting data
 for i in 1:length(test_norm[:,1])
     mach = test_norm[i,2]
     fault = test_norm[i,3]
     pressure = test_norm[i,4]
     alt = test_norm[i,1]
-    if alt == specified_alt
+    if altitudeslice == true
+        if alt == specified_alt
+            push!(mach_SCAT,mach)
+            push!(fault_SCAT,fault)
+            push!(pressure_SCAT,pressure)
+            push!(model_SCAT,overall_best(test_norm[i,1:3])[1])
+        end
+    else
         push!(mach_SCAT,mach)
         push!(fault_SCAT,fault)
         push!(pressure_SCAT,pressure)
         push!(model_SCAT,overall_best(test_norm[i,1:3])[1])
     end
+    #plot line stuff
     if mach == specified_mach && alt == specified_alt
         push!(machline, mach)
         push!(pressureline, pressure)
@@ -175,13 +188,16 @@ for i in 1:length(test_norm[:,1])
 end
 #creating 3d scatter for showing network results
 scatter(fault_SCAT,mach_SCAT,pressure_SCAT,label="Actual",
-        title="Predictions with Testing Data [1525m]",
+        title="Predictions with Testing Data [All]",
         xlabel="Fault Parameter",
         ylabel="Mach",
         zlabel="Pressure")
 scatter!(fault_SCAT,mach_SCAT,model_SCAT,label="Predicted")
-plot!(faultline,machline,pressureline, label="Constant Mach/Alt")
-
+#plotline
+if plotline == true
+    plot!(faultline,machline,pressureline, label="Constant Mach/Alt")
+end
+current()
 
 #error analysis: need to do this in non-normalized data
 pressure_mean = scalingmatrix[4,1]
@@ -208,4 +224,4 @@ train_percenterr = 100*train_percenterr_sum/length(train_norm[:,1])
 print("Test Set %Err = $test_percenterr \n")
 print("Train Set %Err = $train_percenterr \n")
 
-#calculating percent change along constant mach/altitude lines
+#TODO:calculating percent change along constant mach/altitude lines
