@@ -151,10 +151,12 @@ end
 print("Best Network: ", best_string, "with $lowestmse_overall MSE")
 #getting test dataset
 test_norm,scalingmatrix = norm_data(test_data,scalingmatrix)
+alt_mean = scalingmatrix[1,1]
+alt_std = scalingmatrix[1,2]
 mach_SCAT = [];pressure_SCAT = [];fault_SCAT = [];model_SCAT = [];
-#specified_alt = 1525/12000 #TODO:update for normalization
+specified_alt = (6180.56 - alt_mean)/alt_std
 for i in 1:length(test_norm[:,1])
-    #if datapoint[1] == specified_alt
+    #if test_norm[i,1] == specified_alt
         push!(mach_SCAT,test_norm[i,2])
         push!(fault_SCAT,test_norm[i,3])
         push!(pressure_SCAT,test_norm[i,4])
@@ -163,7 +165,7 @@ for i in 1:length(test_norm[:,1])
 end
 #creating 3d scatter for showing network results
 scatter(pressure_SCAT,mach_SCAT,fault_SCAT,label="Actual",
-        title="Predictions with Testing Data [1525m]",
+        title="Predictions with Testing Data [All]",
         xlabel="Pressure",
         ylabel="Mach",
         zlabel="Fault Parameter")
