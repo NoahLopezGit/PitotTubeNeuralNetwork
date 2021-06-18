@@ -188,7 +188,7 @@ ny = size(C,1);
 
 nSteps = 200; # Propagate nSteps
 Sig = [];faultlist = []; machlist = []; altlist = [];
-basefault = 0.9*ones(nSteps)
+basefault = 0.0*ones(nSteps)
 for i in 1:nSteps
     μ_prior .= Ad*μ_post; # Propagate μ
     Σ_prior .= Ad*Σ_post*Ad' + Bd*Q*Bd'; # Propagate Σ
@@ -257,7 +257,7 @@ plot(machlist,altlist,faultlist,
         ylabel="altitude (m)",
         zlabel="Fault Parameter",
         label="Neural Network",
-        zlims=[0,1],
+        zlims=[-0.2,1],
         lw=2)   #actual results
 plot!(machlist,altlist,basefault,
         label="Base Fault",

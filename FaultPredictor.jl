@@ -93,12 +93,12 @@ end
 function networkitr(data,Q,wd,iterations)
     #model... must adjust if you want a different structure
     itrmodel = Chain(Dense(3,Q),
-                        Dense(Q,Q,gelu),
-                        Dense(Q,Q,gelu),
-                        Dense(Q,Q,gelu),
-                        Dense(Q,Q,gelu),
-                        Dense(Q,Q,gelu),
-                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,celu),
+                        Dense(Q,Q,celu),
+                        Dense(Q,Q,celu),
+                        Dense(Q,Q,celu),
+                        Dense(Q,Q,celu),
+                        Dense(Q,Q,celu),
                         Dense(Q,1))
     opt = ADAM()
     para = Flux.params(itrmodel) # variable to represent all of our weights and biases
@@ -131,18 +131,20 @@ end
 
 #iterating training diff networks
 lowestmse_overall = 1.0
-for q in [16]
-    for wd in collect(range(1.0e-8,1.0e-6,length=10))
-        #training netowrk iteration
-        print("\nTesting q=$q,wd=$wd\n")
-        global iteration_best, lowestmse_itr = networkitr(data,q,wd,2000)
-        if lowestmse_itr < lowestmse_overall
-            print("\nlowestmse = $lowestmse_itr  < best overall = $lowestmse_overall\n")
-            print("Replacing Network with best network: ")
-            global best_string = "$q Nodes, $wd regularization parameter\n"
-            print(best_string)
-            global overall_best = iteration_best
-            global lowestmse_overall = lowestmse_itr
+for i in 1:10
+    for q in [16]
+        for wd in [0]#collect(range(1.0e-8,1.0e-5,length=10))
+            #training netowrk iteration
+            print("\nTesting q=$q,wd=$wd\n")
+            global iteration_best, lowestmse_itr = networkitr(data,q,wd,3000)
+            if lowestmse_itr < lowestmse_overall
+                print("\nlowestmse = $lowestmse_itr  < best overall = $lowestmse_overall\n")
+                print("Replacing Network with best network: ")
+                global best_string = "$q Nodes, $wd regularization parameter\n"
+                print(best_string)
+                global overall_best = iteration_best
+                global lowestmse_overall = lowestmse_itr
+            end
         end
     end
 end
