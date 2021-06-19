@@ -5,6 +5,9 @@ Pkg.activate(".")
 using F16Model, LinearAlgebra, Plots
 using BSON: @load
 using Flux
+using Statistics
+
+#loading neural networks
 @load "Models/Pressure_overall_best.bson" Pressure_overall_best
 pressuremodel = Pressure_overall_best
 @load "Models/Fault4_Fault_Model.bson" Fault_Model
@@ -188,7 +191,7 @@ ny = size(C,1);
 
 nSteps = 200; # Propagate nSteps
 Sig = [];faultlist = []; machlist = []; altlist = [];
-basefault = collect(range(0,1,length=nSteps)) .^ 2
+basefault = 0.9 * ones(nSteps)  #collect(range(0,1,length=nSteps))
 for i in 1:nSteps
     μ_prior .= Ad*μ_post; # Propagate μ
     Σ_prior .= Ad*Σ_post*Ad' + Bd*Q*Bd'; # Propagate Σ
@@ -232,7 +235,7 @@ for i in 1:nSteps
     faultpredict_norm = faultmodel([altKF_norm,machKF_norm,Pstag_norm])[1]
     faultpredict = (faultpredict_norm * fault_std) + fault_mean
     push!(faultlist, faultpredict)
-    print(faultpredict,"\n")
+
     #print(faultpredict,"\n") #should desired fault parameter
     #print(μ_post,"\n")
     # No filtering.
@@ -248,6 +251,13 @@ for i in 1:nSteps
 end
 
 #TODO: Error Analysis do std and mean of error
+#not sure if this is allowed... maybe try different approach to representing error
+errorlist = abs.(faultlist .- basefault)
+errormean = Statistics.mean(errorlist)
+errorstd = Statistics.std(errorlist)
+confidence = errormean + 2 * errorstd
+print("Error Mean = $errormean\nError std = $errorstd\n")
+print("this path predicted the fault parameter to +/-$confidence with a 95% confidence\n")
 
 #creating 3d line plot to display results
 plot(machlist,altlist,faultlist,
