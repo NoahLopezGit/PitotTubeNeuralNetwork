@@ -188,7 +188,7 @@ ny = size(C,1);
 
 nSteps = 200; # Propagate nSteps
 Sig = [];faultlist = []; machlist = []; altlist = [];
-basefault = collect(range(1,0,length=nSteps))
+basefault = collect(range(0,1,length=nSteps)) .^ 2
 for i in 1:nSteps
     μ_prior .= Ad*μ_post; # Propagate μ
     Σ_prior .= Ad*Σ_post*Ad' + Bd*Q*Bd'; # Propagate Σ
@@ -245,20 +245,21 @@ for i in 1:nSteps
     #push!(Sig,Diagonal(Σ_post).diag)
     #
     # # Save the  data with Kalman filtering switch ed on.
-
 end
 
+#TODO: Error Analysis do std and mean of error
+
 #creating 3d line plot to display results
-
-
 plot(machlist,altlist,faultlist,
         title="Fault Prediction over Mach/Altitude Flight Path",
         xlabel="mach",
-        ylabel="altitude (m)",
+        ylabel="alt (m)",
         zlabel="Fault Parameter",
         label="Neural Network",
         zlims=[-0.2,1],
-        lw=2)   #actual results
+        lw=2,
+        camera=(15,30),
+        legend=:bottomleft)   #actual results
 plot!(machlist,altlist,basefault,
         label="Base Fault",
         l2=2)  #base values to compare
@@ -277,6 +278,5 @@ for i in 1:nSteps÷5
                 [basefault[5*i],faultlist[5*i]],
                 linecolor=:grey,label="Difference")
     end
-    print("\rline $i/$nSteps  ")
 end
 current()
