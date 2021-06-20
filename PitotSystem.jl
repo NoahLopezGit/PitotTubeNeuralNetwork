@@ -50,8 +50,8 @@ dlef = Leading edge flap angle in deg
 # status = status of the optimization, status = 0 means optimization found solution and (xbar, ubar) defines a valid trim  point/
 # prob = data structure from IpOpt.
 
-h0 = 15000; # ft
-Vt0 = 500;   # ft/s
+h0 = 10000; # ft
+Vt0 = 400;   # ft/s
 xbar, ubar, status, prob = F16Model.Trim(h0,Vt0); # Default is steady-level
 
 # ===================================================
@@ -191,7 +191,7 @@ ny = size(C,1);
 
 nSteps = 200; # Propagate nSteps
 Sig = [];faultlist = []; machlist = []; altlist = [];
-basefault = 0.9 * ones(nSteps)  #collect(range(0,1,length=nSteps))
+basefault = collect(range(0,1,length=nSteps)) .^ 2
 for i in 1:nSteps
     μ_prior .= Ad*μ_post; # Propagate μ
     Σ_prior .= Ad*Σ_post*Ad' + Bd*Q*Bd'; # Propagate Σ
