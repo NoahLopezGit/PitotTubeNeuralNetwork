@@ -170,23 +170,3 @@ scatter(pressure_SCAT,mach_SCAT,fault_SCAT,label="Actual",
         ylabel="Mach",
         zlabel="Fault Parameter")
 scatter!(pressure_SCAT,mach_SCAT,model_SCAT,label="Predicted")
-
-
-#error analysis
-#TODO: %err is tricky around 0 find a better way to present the error
-test_percenterr_sum = 0.0
-for i in 1:length(test_norm[:,1])
-    global test_percenterr_sum += abs((overall_best(test_norm[i,[1,2,4]])[1] -
-                                test_norm[i,3])/test_norm[i,3])
-end
-test_percenterr = test_percenterr_sum/length(test_norm[:,1])
-
-train_percenterr_sum = 0.0
-for i in 1:length(train_norm[:,1])
-    global train_percenterr_sum += abs((overall_best(train_norm[i,[1,2,4]])[1] -
-                                train_norm[i,3])/train_norm[i,3])
-end
-train_percenterr = train_percenterr_sum/length(train_norm[:,1])
-
-print("Test Set %Err = $test_percenterr \n")
-print("Train Set %Err = $train_percenterr \n")
