@@ -93,12 +93,12 @@ end
 function networkitr(data,Q,wd,iterations)
     #model... must adjust if you want a different structure
     itrmodel = Chain(Dense(3,Q),
-                        Dense(Q,Q,celu),
-                        Dense(Q,Q,celu),
-                        Dense(Q,Q,celu),
-                        Dense(Q,Q,celu),
-                        Dense(Q,Q,celu),
-                        Dense(Q,Q,celu),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,gelu),
                         Dense(Q,1))
     opt = ADAM()
     para = Flux.params(itrmodel) # variable to represent all of our weights and biases
@@ -131,42 +131,19 @@ end
 
 #iterating training diff networks
 lowestmse_overall = 1.0
-for i in 1:10
-    for q in [16]
-        for wd in [0]#collect(range(1.0e-8,1.0e-5,length=10))
-            #training netowrk iteration
-            print("\nTesting q=$q,wd=$wd\n")
-            global iteration_best, lowestmse_itr = networkitr(data,q,wd,3000)
-            if lowestmse_itr < lowestmse_overall
-                print("\nlowestmse = $lowestmse_itr  < best overall = $lowestmse_overall\n")
-                print("Replacing Network with best network: ")
-                global best_string = "$q Nodes, $wd regularization parameter\n"
-                print(best_string)
-                global overall_best = iteration_best
-                global lowestmse_overall = lowestmse_itr
-            end
+for q in [8,16,32]
+    for wd in [0,0.0001,0.00001,0.000001,0.0000001]
+        #training netowrk iteration
+        print("\nTesting q=$q,wd=$wd\n")
+        global iteration_best, lowestmse_itr = networkitr(data,q,wd,1500)
+        if lowestmse_itr < lowestmse_overall
+            print("\nlowestmse = $lowestmse_itr  < best overall = $lowestmse_overall\n")
+            print("Replacing Network with best network: ")
+            global best_string = "$q Nodes, $wd regularization parameter\n"
+            print(best_string)
+            global overall_best = iteration_best
+            global lowestmse_overall = lowestmse_itr
         end
     end
 end
 print("Best Network: ", best_string, "with $lowestmse_overall MSE")
-#getting test dataset
-test_norm,scalingmatrix = norm_data(test_data,scalingmatrix)
-alt_mean = scalingmatrix[1,1]
-alt_std = scalingmatrix[1,2]
-mach_SCAT = [];pressure_SCAT = [];fault_SCAT = [];model_SCAT = [];
-specified_alt = (6180.56 - alt_mean)/alt_std
-for i in 1:length(test_norm[:,1])
-    if test_norm[i,1] == specified_alt
-        push!(mach_SCAT,test_norm[i,2])
-        push!(fault_SCAT,test_norm[i,3])
-        push!(pressure_SCAT,test_norm[i,4])
-        push!(model_SCAT,overall_best(test_norm[i,[1,2,4]])[1])
-    end
-end
-#creating 3d scatter for showing network results
-scatter(pressure_SCAT,mach_SCAT,fault_SCAT,label="Actual",
-        title="Predictions with Testing Data [All]",
-        xlabel="Pressure",
-        ylabel="Mach",
-        zlabel="Fault Parameter")
-scatter!(pressure_SCAT,mach_SCAT,model_SCAT,label="Predicted")

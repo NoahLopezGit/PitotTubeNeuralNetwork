@@ -10,7 +10,7 @@ using Random
 using Statistics
 
 #load network to test
-@load "Models/Fault4_Fault_Model.bson" Fault_Model
+@load "Models/Fault_wout_data__Fault_Model.bson" Fault_Model
 
 #function for parsing data
 function get_data(filename)
@@ -93,9 +93,7 @@ for i in 1:length(train_norm[:,1])
     push!(data,(train_norm[i,[1,2,3]],train_norm[i,4]))
 end
 
-
-#TODO: %err is tricky around 0 find a better way to present the error
-
+#error analysis
 #function to calculate mean error and std to give 95% confidence interval
 function erroranal(dataset,model,faultstd,faultmean)
     errorlist = []
@@ -117,3 +115,24 @@ print("This network has an average error of $errormean.\n",
         "with a standard deviation of $errorstd.\n",
         "This means the network can predict the fault parameter to:\n",
         "+/-$ninetyfive_confidence with a confidence of 95%")
+
+#plotting
+alt_mean = scalingmatrix[1,1]
+alt_std = scalingmatrix[1,2]
+mach_SCAT = [];pressure_SCAT = [];fault_SCAT = [];model_SCAT = [];
+specified_alt = (12000 - alt_mean)/alt_std
+for i in 1:length(test_norm[:,1])
+    if test_norm[i,1] == specified_alt
+        push!(mach_SCAT,test_norm[i,2])
+        push!(fault_SCAT,test_norm[i,3])
+        push!(pressure_SCAT,test_norm[i,4])
+        push!(model_SCAT,Fault_Model(test_norm[i,[1,2,4]])[1])
+    end
+end
+#creating 3d scatter for showing network results
+scatter(pressure_SCAT,mach_SCAT,fault_SCAT,label="Actual",
+        title="Predictions with Testing Data [All]",
+        xlabel="Pressure",
+        ylabel="Mach",
+        zlabel="Fault Parameter")
+scatter!(pressure_SCAT,mach_SCAT,model_SCAT,label="Predicted")
