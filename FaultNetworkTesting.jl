@@ -10,7 +10,7 @@ using Random
 using Statistics
 
 #load network to test
-@load "Models/Fault_wout_data__Fault_Model.bson" Fault_Model
+@load "Models/Fault4_Fault_Model.bson" Fault_Model
 
 #function for parsing data
 function get_data(filename)
