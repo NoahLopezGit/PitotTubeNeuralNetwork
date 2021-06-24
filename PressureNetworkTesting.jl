@@ -11,8 +11,7 @@ using Statistics
 
 #load network to test
 @load "Models/Pressure_overall_best.bson" Pressure_overall_best
-Pressure_Network = Pressure_overall_best
-
+Pressure_Model = Pressure_overall_best
 #function for parsing data
 function get_data(filename)
     f1 = open(filename)
@@ -87,6 +86,11 @@ test_data = vecvec_to_matrix(test_data_tmp)
 train_norm, scalingmatrix = norm_data(train_data)
 test_norm, scalingmatrix = norm_data(test_data,scalingmatrix)
 data_norm, scalingmatrix = norm_data(data_tmp,scalingmatrix)
+
+alt_mean = scalingmatrix[1,1]; alt_std = scalingmatrix[1,2];
+mach_mean = scalingmatrix[2,1]; mach_std = scalingmatrix[2,2];
+fault_mean = scalingmatrix[3,1];fault_std = scalingmatrix[3,2]
+pressure_mean = scalingmatrix[4,1]; pressure_std = scalingmatrix[4,2]
 #converting data to format which works with network
 data = []
 for i in 1:length(train_norm[:,1])
@@ -94,47 +98,50 @@ for i in 1:length(train_norm[:,1])
     push!(data,(train_norm[i,[1,2,3]],train_norm[i,4]))
 end
 
-#error analysis: need to do this in non-normalized data
-pressure_mean = scalingmatrix[4,1]
-pressure_std = scalingmatrix[4,2]
-#defining function to calculated error averages of datasets
-function percenterr(data_set,model,outputmean,outputstd)
-    test_percenterr_sum = 0.0
-    for i in 1:length(data_set[:,1])
-        #converting to pascals to avoid issues with 0 for percent error
-        predicted = (model(data_set[i,[1,2,3]])[1] * outputstd) + outputmean
-        actual = (data_set[i,4] * outputstd) + outputmean
-        test_percenterr_sum += abs(predicted-actual)/actual
+
+
+#Normalized Root Mean Squared Error
+function RMSE(data_set,model)
+    #calculate root mean squared error
+    N = length(data_set[:,1])
+    print(N,'\n')
+    MSE_sum = 0.0
+    for i in 1:N
+        MSE_sum += 1/N * (data_set[i,4] - model(data_set[i,1:3])[1])^2.0
     end
-    test_percenterr = 100*test_percenterr_sum/length(data_set[:,1])
-    return test_percenterr
+    return sqrt(MSE_sum)  # no norm needed bc data is already normalized
 end
 
-#using function
-test_percenterr = percenterr(test_norm,Pressure_Network,pressure_mean,pressure_std)
-train_percenterr = percenterr(train_norm,Pressure_Network,pressure_mean,pressure_std)
-overall_err = percenterr(data_norm,Pressure_Network,pressure_mean,pressure_std)
-print("Test Set %Err = $test_percenterr \n")
-print("Train Set %Err = $train_percenterr \n")
-print("Overall %Err = $overall_err \n")
 
-#TODO:calculating percent change along constant mach/altitude lines
+
+print("Error Anlysis")
+print("\nOverall root mean squared error: ")
+print(RMSE(data_norm,Pressure_Model))
+print("\nTest root mean squared error: ")
+print(RMSE(test_norm,Pressure_Model))
+print("\nTrain root mean squared error: ")
+print(RMSE(train_norm,Pressure_Model))
+
 #grab all 0 and 0.99 mach values from training set
+#TODO: this is like interval of prediction (goes +/- 0.23ish)
+#"interval of prediction" for this model is like 10x smaller than fault model
 zero_fault = [];  ninetynine_fault = [];
-for i in 1:length(train_data[:,1])
-    if train_data[i,3] == 0
-        push!(zero_fault, train_data[i,4])
+
+for i in 1:length(train_norm[:,1])
+    if train_data[i,3] == 0.0
+        push!(zero_fault, train_norm[i,4])
     elseif train_data[i,3] == 0.99
-        push!(ninetynine_fault, train_data[i,4])
+        push!(ninetynine_fault, train_norm[i,4])
     end
 end
+N = length(zero_fault)
 #calculating average percent change along const. mach/alt line
-percent_change_avg = 0.0
-for i in 1:length(zero_fault)
-    global percent_change_avg += 100/length(zero_fault)*abs((zero_fault[i]
-                            - ninetynine_fault[i])/ninetynine_fault[i])
+MSE_change = 0.0
+for i in 1:N
+    global MSE_change += 1/N * (ninetynine_fault[i] - zero_fault[i])^2.0
 end
-print("Average percent change along constant mach/alt lines is $percent_change_avg%")
+RMSE_change = sqrt(MSE_change)
+print("\nAverage RMSE change along constant mach/alt lines is: $RMSE_change")
 
 
 #Plotting Stuff
@@ -143,8 +150,7 @@ plotline = true;altitudeslice = true; #set these to true/false to adjust what is
 mach_SCAT = [];pressure_SCAT = [];fault_SCAT = [];model_SCAT = [];
 machline = []; pressureline = []; faultline = [];
 #specified_alt/mach for altitude slice and plotline respectively
-alt_mean = scalingmatrix[1,1]; alt_std = scalingmatrix[1,2];
-mach_mean = scalingmatrix[2,1]; mach_std = scalingmatrix[2,2];
+
 specified_alt_tmp = 1525
 specified_alt = (specified_alt_tmp - alt_mean)/alt_std
 specified_mach = (0.49 - mach_mean)/mach_std
@@ -159,13 +165,13 @@ for i in 1:length(test_norm[:,1])
             push!(mach_SCAT,mach)
             push!(fault_SCAT,fault)
             push!(pressure_SCAT,pressure)
-            push!(model_SCAT,Pressure_Network(test_norm[i,1:3])[1])
+            push!(model_SCAT,Pressure_Model(test_norm[i,1:3])[1])
         end
     else
         push!(mach_SCAT,mach)
         push!(fault_SCAT,fault)
         push!(pressure_SCAT,pressure)
-        push!(model_SCAT,Pressure_Network(test_norm[i,1:3])[1])
+        push!(model_SCAT,Pressure_Model(test_norm[i,1:3])[1])
     end
     #plot line stuff
     if mach == specified_mach && alt == specified_alt

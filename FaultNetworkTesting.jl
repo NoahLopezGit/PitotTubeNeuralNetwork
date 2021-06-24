@@ -93,28 +93,27 @@ for i in 1:length(train_norm[:,1])
     push!(data,(train_norm[i,[1,2,3]],train_norm[i,4]))
 end
 
-#error analysis
-#function to calculate mean error and std to give 95% confidence interval
-function erroranal(dataset,model,faultstd,faultmean)
-    errorlist = []
-    for i in 1:length(dataset[:,1])
-        #adjust x and y for fault detection here
-        prediction = (model(dataset[i,[1,2,4]])[1] * faultstd) + faultmean
-        actual = (dataset[i,3] * faultstd) + faultmean
-        push!(errorlist, prediction - actual)
+
+#Normalized Root Mean Squared Error
+function RMSE(data_set,model)
+    #calculate root mean squared error
+    N = length(data_set[:,1])
+    print(N,'\n')
+    MSE_sum = 0.0
+    for i in 1:N
+        MSE_sum += 1/N * (data_set[i,3] - model(data_set[i,[1,2,4]])[1])^2.0
     end
-    return errorlist
+    return sqrt(MSE_sum)  # no norm needed bc data is already normalized
 end
 
-faultstd = scalingmatrix[3,2];faultmean = scalingmatrix[3,1];
-totalerror = erroranal(data_norm,Fault_Model,faultstd,faultmean)
-errormean = Statistics.mean(abs.(totalerror))
-errorstd = Statistics.std(abs.(totalerror))
-ninetyfive_confidence = errormean + 2 * errorstd
-print("This network has an average error of $errormean.\n",
-        "with a standard deviation of $errorstd.\n",
-        "This means the network can predict the fault parameter to:\n",
-        "+/-$ninetyfive_confidence with a confidence of 95%")
+print("Error Anlysis")
+print("\nOverall root mean squared error: ")
+print(RMSE(data_norm,Fault_Model))
+print("\nTest root mean squared error: ")
+print(RMSE(test_norm,Fault_Model))
+print("\nTrain root mean squared error: ")
+print(RMSE(train_norm,Fault_Model))
+#TODO: represent interval of prediction (normalied goes -2 to 0.5 ish)
 
 #plotting
 alt_mean = scalingmatrix[1,1]
