@@ -13,7 +13,7 @@ pressuremodel = Pressure_overall_best
 @load "Models/Fault4_Fault_Model.bson" Fault_Model
 faultmodel = Fault_Model
 
-
+#TODO: are these values still correct?
 #just copied and pasted these... might want to automate in future
 fault_std = 0.310076;fault_mean = 0.741667;
 alt_std = 3345.34; alt_mean = 6762.5;
@@ -61,7 +61,7 @@ nx,nu = size(Bc);
 
 # to indclude gps we want Npos and Epos (x[1,2])
 ix = [1,2,3,5,7,8,11]; # States I want...  now including Npos (1) and Epos (2)
-iu =[2]; # Control variables I want, this how the disturbance comes in.
+iu = [2]; # Control variables I want, this how the disturbance comes in.
 
 # Pull out longitudinal model
 Al = Ac[ix,ix];
