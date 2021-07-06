@@ -9,7 +9,9 @@ using Plots
 function get_data(filename)
     f1 = open(filename)
     tempdata = readlines(f1)
-    tempdata[1] = tempdata[1][4:end]  #cutting of beggining bc some weird chars
+    print(tempdata[1],'\n')
+    #use this for "Dataset/FINAL_DATA_.txt" for other files may not
+    #tempdata[1] = tempdata[1][4:end]  #cutting of beggining bc some weird chars
     close(f1)
     data = []
     regvec = zeros(length(tempdata),
@@ -23,7 +25,7 @@ end
 
 
 #getting simscale results
-fname = "Dataset/FINAL_DATA.txt"
+fname = "Dataset/FINAL_DATA_reorganized.txt"
 data_tmp = get_data(fname)
 
 #series color is gradient based on altitude

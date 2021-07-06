@@ -14,7 +14,7 @@ using Statistics
 function get_data(filename)
     f1 = open(filename)
     tempdata = readlines(f1)
-    tempdata[1] = tempdata[1][4:end]
+    tempdata[1] = tempdata[1][4:end] #depends on file TODO: may have to change
     close(f1)
     data = []
     regvec = zeros(length(tempdata),
