@@ -4,26 +4,20 @@ use $ git clone https://github.com/FrostyNip/PitotTubeNeuralNetwork to clone thi
 
 What each .jl file does:
 
-FaultPredictor.jl
-  
-  Constructs and trains fault detection network
+FaultPredictor.jl \n
+Constructs and trains fault detection network
  
-FaultNetworkTesting.jl
+FaultNetworkTesting.jl \n
+tests network accuracy and plots some results
   
-  tests network accuracy and plots some results
+PressurePredictor.jl \n
+Constructs and trains pressure prediction network
   
-PressurePredictor.jl
+PressureNetworkTesting.jl \n
+tests network accuracy and plots some results
   
-  Constructs and trains pressure prediction network
+PitotSystem.jl \n
+Combines networks, f16 model, and kalman filtering to create system described in project architecture
   
-PressureNetworkTesting.jl
-  
-  tests network accuracy and plots some results
-  
-PitotSystem.jl
-  
-  Combines networks, f16 model, and kalman filtering to create system described in project architecture
-  
-SIMSCALE_results_plotting.jl
-  
-  PLots some restuls from the CFD analysis
+SIMSCALE_results_plotting.jl \n
+PLots some restuls from the CFD analysis
