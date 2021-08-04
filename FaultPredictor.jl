@@ -97,7 +97,6 @@ function networkitr(data,Q,wd,iterations)
                         Dense(Q,Q,celu),
                         Dense(Q,Q,celu),
                         Dense(Q,Q,celu),
-                        Dense(Q,Q,celu),
                         Dense(Q,1))
     opt = ADAM()
     para = Flux.params(itrmodel) # variable to represent all of our weights and biases
