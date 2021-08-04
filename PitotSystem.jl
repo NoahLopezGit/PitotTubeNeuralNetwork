@@ -10,7 +10,7 @@ using Statistics
 #loading neural networks
 @load "Models/Pressure_overall_best.bson" Pressure_overall_best
 pressuremodel = Pressure_overall_best
-@load "Models/Fault4_Fault_Model.bson" Fault_Model
+@load "Models/Fault_Model.bson" Fault_Model
 faultmodel = Fault_Model
 
 #TODO: are these values still correct?
@@ -50,8 +50,8 @@ dlef = Leading edge flap angle in deg
 # status = status of the optimization, status = 0 means optimization found solution and (xbar, ubar) defines a valid trim  point/
 # prob = data structure from IpOpt.
 
-h0 = 10000; # ft
-Vt0 = 400;   # ft/s
+h0 = 15000; # ft
+Vt0 = 500;   # ft/s
 xbar, ubar, status, prob = F16Model.Trim(h0,Vt0); # Default is steady-level
 
 # ===================================================
