@@ -85,7 +85,8 @@ scatter(fault,mach,pressure,
     title="Altitude Slice (1525m)",
     xlabel="Fault",
     ylabel="Mach",
-    zlabel="Pressure (kPa)")
+    zlabel="Pressure (kPa)",
+    label=nothing)
 plot!(faultline,machline,pressureline,
         label="Constant Mach/Alt",
         linecolor=:red)
