@@ -9,7 +9,6 @@ using BSON: @save
 using Random
 using Statistics
 
-#comment
 #function for parsing data
 function get_data(filename)
     f1 = open(filename)
