@@ -93,12 +93,12 @@ end
 function networkitr(data,Q,wd,iterations)
     #model... must adjust if you want a different structure
     itrmodel = Chain(Dense(3,Q),
-                        Dense(Q,Q,gelu),
-                        Dense(Q,Q,gelu),
-                        Dense(Q,Q,gelu),
-                        Dense(Q,Q,gelu),
-                        Dense(Q,Q,gelu),
-                        Dense(Q,Q,gelu),
+                        Dense(Q,Q,celu),
+                        Dense(Q,Q,celu),
+                        Dense(Q,Q,celu),
+                        Dense(Q,Q,celu),
+                        Dense(Q,Q,celu),
+                        Dense(Q,Q,celu),
                         Dense(Q,1))
     opt = ADAM()
     para = Flux.params(itrmodel) # variable to represent all of our weights and biases
@@ -130,12 +130,17 @@ function networkitr(data,Q,wd,iterations)
 end
 
 #iterating training diff networks
+network_dict = Dict{Int8,Float64}(8 => 1.0, 16 => 1.0, 32 => 1.0, 64 => 1.0)
+
 lowestmse_overall = 1.0
-for q in [8,16,32]
+for q in [8,16,32,64]
     for wd in [0,0.0001,0.00001,0.000001,0.0000001]
         #training netowrk iteration
         print("\nTesting q=$q,wd=$wd\n")
-        global iteration_best, lowestmse_itr = networkitr(data,q,wd,1500)
+        global iteration_best, lowestmse_itr = networkitr(data,q,wd,1000)
+        if network_dict[q] > lowestmse_itr
+            network_dict[q] = lowestmse_itr
+        end
         if lowestmse_itr < lowestmse_overall
             print("\nlowestmse = $lowestmse_itr  < best overall = $lowestmse_overall\n")
             print("Replacing Network with best network: ")
